@@ -13,6 +13,14 @@ const sessionSchema = new mongoose.Schema({
     enum: ['everyone', 'buzzer'],
     required: true
   },
+  questionPack: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'QuestionPack'
+  },
+  game: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Game'
+  },
   hostSocketId: String,
   players: [{
     socketId: { type: String, required: true },
