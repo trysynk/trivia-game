@@ -1,0 +1,17 @@
+node_modules/
+.env
+.DS_Store
+*.log
+npm-debug.log*
+src/uploads/images/*
+src/uploads/audio/*
+src/uploads/video/*
+!src/uploads/images/.gitkeep
+!src/uploads/audio/.gitkeep
+!src/uploads/video/.gitkeep
+.idea/
+.vscode/
+*.swp
+*.swo
+coverage/
+dist/
