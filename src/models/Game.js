@@ -114,8 +114,8 @@ const gameSchema = new mongoose.Schema({
   duration: Number,
   status: {
     type: String,
-    enum: ['in_progress', 'completed', 'abandoned'],
-    default: 'in_progress'
+    enum: ['waiting', 'in_progress', 'completed', 'abandoned'],
+    default: 'waiting'
   },
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
