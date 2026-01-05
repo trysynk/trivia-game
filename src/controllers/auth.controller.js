@@ -16,13 +16,20 @@ const generateRefreshToken = () => {
 };
 
 const login = asyncHandler(async (req, res) => {
-  const { username, password } = req.body;
+  const { username, email, password } = req.body;
+  const identifier = username || email;
 
-  if (!username || !password) {
-    throw createError('Please provide username and password', 400);
+  if (!identifier || !password) {
+    throw createError('Please provide username/email and password', 400);
   }
 
-  const admin = await Admin.findOne({ username }).select('+password');
+  // Find by username or email
+  const admin = await Admin.findOne({
+    $or: [
+      { username: identifier },
+      { email: identifier.toLowerCase() }
+    ]
+  }).select('+password');
 
   if (!admin) {
     throw createError('Invalid username or password', 401);
@@ -44,6 +51,11 @@ const login = asyncHandler(async (req, res) => {
       admin.lockUntil = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes
     }
 
+    // Fix for old admins without email
+    if (!admin.email) {
+      admin.email = `${admin.username}@trivia.local`;
+    }
+
     await admin.save();
     await activityService.logLogin(admin, req, false);
 
@@ -54,6 +66,11 @@ const login = asyncHandler(async (req, res) => {
   admin.loginAttempts = 0;
   admin.lockUntil = undefined;
   admin.lastLogin = new Date();
+
+  // Fix for old admins without email
+  if (!admin.email) {
+    admin.email = `${admin.username}@trivia.local`;
+  }
 
   // Generate tokens
   const accessToken = generateAccessToken(admin._id);
