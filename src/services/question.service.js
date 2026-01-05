@@ -14,7 +14,7 @@ const getQuestionsForGame = async (categoryIds, options = {}) => {
   // Determine which game availability field to check
   const gameField = gameType === 'everyone' ? 'gamesAvailable.everyoneAnswers.enabled' :
                     gameType === 'buzzer' ? 'gamesAvailable.buzzerMode.enabled' :
-                    'gamesAvailable.mainGame';
+                    'gamesAvailable.mainGame.enabled';
 
   for (const categoryId of categoryIds) {
     result[categoryId] = {
@@ -69,7 +69,7 @@ const getRandomQuestion = async (categoryIds, options = {}) => {
 
   const gameField = gameType === 'everyone' ? 'gamesAvailable.everyoneAnswers.enabled' :
                     gameType === 'buzzer' ? 'gamesAvailable.buzzerMode.enabled' :
-                    'gamesAvailable.mainGame';
+                    'gamesAvailable.mainGame.enabled';
 
   const query = {
     category: { $in: categoryIds },
@@ -358,7 +358,7 @@ const getQuestionsByFilters = async (filters = {}, pagination = {}) => {
   if (game) {
     const gameField = game === 'everyoneAnswers' ? 'gamesAvailable.everyoneAnswers.enabled' :
                       game === 'buzzerMode' ? 'gamesAvailable.buzzerMode.enabled' :
-                      'gamesAvailable.mainGame';
+                      'gamesAvailable.mainGame.enabled';
     query[gameField] = true;
   }
 
