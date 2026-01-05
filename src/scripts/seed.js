@@ -859,6 +859,10 @@ const seedData = async () => {
     const insertedQuestions = await Question.insertMany(allQuestions);
     console.log(`Created ${insertedQuestions.length} questions`);
 
+    // Ensure all questions are active
+    await Question.updateMany({}, { $set: { status: 'active' } });
+    console.log('Set all questions to active status');
+
     // Update category question counts
     for (const category of categories) {
       const count = await Question.countDocuments({ category: category._id });

@@ -339,7 +339,7 @@ const getQuestionsByFilters = async (filters = {}, pagination = {}) => {
     category,
     difficulty,
     questionType,
-    status = 'active',
+    status,  // No default - show all questions unless filtered
     game,
     hasMultipleChoice,
     search,

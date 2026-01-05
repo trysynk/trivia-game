@@ -203,7 +203,7 @@ const questionSchema = new mongoose.Schema({
       values: ['draft', 'active', 'needs_review', 'archived'],
       message: 'Invalid status'
     },
-    default: 'draft',
+    default: 'active',
     index: true
   },
   reviewNotes: { type: String, trim: true },
