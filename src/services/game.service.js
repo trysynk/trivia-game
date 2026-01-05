@@ -1,65 +1,181 @@
 const { Game, Question, Category } = require('../models');
+const { customAlphabet } = require('nanoid');
+const scoringService = require('./scoring.service');
 
-const createGame = async (gameType, categories, teams = []) => {
+const nanoid = customAlphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', 8);
+
+const createGame = async (gameType, options = {}) => {
+  const { categories, teams = [], questionPack, settings = {} } = options;
+
   const game = await Game.create({
+    shortId: nanoid(),
     gameType,
     categories,
+    questionPack,
+    settings,
     teams: teams.map(team => ({
       name: team.name,
       icon: team.icon,
       color: team.color,
+      score: [],
+      helpersUsed: {
+        skip: false,
+        double: false,
+        hint: false
+      },
       finalScore: 0
     })),
-    questionsPlayed: []
+    questionsPlayed: [],
+    status: 'waiting'
   });
 
   return game;
 };
 
-const updateGame = async (gameId, updates) => {
-  return await Game.findByIdAndUpdate(gameId, updates, { new: true });
+const startGame = async (gameId) => {
+  return Game.findByIdAndUpdate(
+    gameId,
+    {
+      status: 'playing',
+      startedAt: new Date()
+    },
+    { new: true }
+  );
 };
 
-const completeGame = async (gameId, data) => {
-  const { teams, players, questionsPlayed, winner, duration } = data;
+const updateGame = async (gameId, updates) => {
+  return Game.findByIdAndUpdate(gameId, updates, { new: true });
+};
 
-  const updates = {
-    completedAt: new Date(),
-    duration
-  };
+const addQuestionResult = async (gameId, questionData) => {
+  const {
+    questionId,
+    teamResults = [],
+    playerResults = []
+  } = questionData;
 
-  if (questionsPlayed) {
-    updates.questionsPlayed = questionsPlayed;
+  const game = await Game.findById(gameId);
+  if (!game) return null;
+
+  game.questionsPlayed.push({
+    question: questionId,
+    teamResults,
+    playerResults,
+    playedAt: new Date()
+  });
+
+  await game.save();
+  return game;
+};
+
+const updateTeamScore = async (gameId, teamIndex, points, roundNumber) => {
+  const game = await Game.findById(gameId);
+  if (!game || !game.teams[teamIndex]) return null;
+
+  game.teams[teamIndex].score.push({
+    round: roundNumber,
+    points,
+    timestamp: new Date()
+  });
+
+  game.teams[teamIndex].finalScore += points;
+
+  await game.save();
+  return game;
+};
+
+const useTeamHelper = async (gameId, teamIndex, helperType) => {
+  const game = await Game.findById(gameId);
+  if (!game || !game.teams[teamIndex]) return null;
+
+  if (game.teams[teamIndex].helpersUsed[helperType]) {
+    throw new Error(`Helper ${helperType} already used`);
   }
 
-  if (teams) {
-    updates.teams = teams;
-    updates.winner = winner;
+  game.teams[teamIndex].helpersUsed[helperType] = true;
+
+  await game.save();
+  return game;
+};
+
+const completeGame = async (gameId, data = {}) => {
+  const game = await Game.findById(gameId);
+  if (!game) return null;
+
+  game.status = 'completed';
+  game.completedAt = new Date();
+
+  if (data.teams) {
+    game.teams = data.teams;
   }
 
-  if (players) {
-    updates.players = players.map((player, index) => ({
+  if (data.players) {
+    game.players = data.players.map((player, index) => ({
       name: player.name,
       finalScore: player.score,
-      rank: index + 1
+      rank: index + 1,
+      correctAnswers: player.correctAnswers || 0,
+      wrongAnswers: player.wrongAnswers || 0,
+      avgResponseTime: player.totalAnswerTime && player.correctAnswers
+        ? Math.round(player.totalAnswerTime / player.correctAnswers)
+        : 0
     }));
   }
 
-  return await Game.findByIdAndUpdate(gameId, updates, { new: true });
+  if (game.gameType === 'main' && game.teams.length > 0) {
+    const winner = scoringService.determineWinner(game.teams, 'main');
+    if (winner) {
+      game.winner = winner;
+    }
+  } else if (game.players.length > 0) {
+    const winner = scoringService.determineWinner(game.players, game.gameType);
+    if (winner) {
+      game.winner = winner;
+    }
+  }
+
+  if (game.startedAt) {
+    game.duration = Math.round((game.completedAt - game.startedAt) / 1000);
+  }
+
+  await game.save();
+
+  for (const played of game.questionsPlayed) {
+    const hasCorrect = played.playerResults?.some(r => r.correct) ||
+                       played.teamResults?.some(r => r.correct);
+
+    await Question.findByIdAndUpdate(played.question, {
+      $inc: {
+        'stats.timesPlayed': 1,
+        'stats.timesCorrect': hasCorrect ? 1 : 0
+      }
+    });
+  }
+
+  await game.complete();
+
+  return game;
 };
 
 const getGameHistory = async (options = {}) => {
-  const { page = 1, limit = 10, gameType } = options;
+  const { page = 1, limit = 10, gameType, status, dateFrom, dateTo } = options;
   const skip = (page - 1) * limit;
 
   const query = {};
-  if (gameType) {
-    query.gameType = gameType;
+
+  if (gameType) query.gameType = gameType;
+  if (status) query.status = status;
+
+  if (dateFrom || dateTo) {
+    query.createdAt = {};
+    if (dateFrom) query.createdAt.$gte = new Date(dateFrom);
+    if (dateTo) query.createdAt.$lte = new Date(dateTo);
   }
 
   const [games, total] = await Promise.all([
     Game.find(query)
       .populate('categories', 'name nameEn icon color')
+      .populate('questionPack', 'name nameEn')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit),
@@ -75,17 +191,22 @@ const getGameHistory = async (options = {}) => {
 };
 
 const getGameStats = async () => {
-  const [totalGames, gamesByType, totalQuestions, totalCategories, recentGames] = await Promise.all([
-    Game.countDocuments(),
+  const [totalGames, gamesByType, totalQuestions, totalCategories, recentGames, avgDuration] = await Promise.all([
+    Game.countDocuments({ status: 'completed' }),
     Game.aggregate([
+      { $match: { status: 'completed' } },
       { $group: { _id: '$gameType', count: { $sum: 1 } } }
     ]),
-    Question.countDocuments({ isActive: true }),
+    Question.countDocuments({ status: 'active' }),
     Category.countDocuments({ isActive: true }),
-    Game.find()
+    Game.find({ status: 'completed' })
       .populate('categories', 'name nameEn')
       .sort({ createdAt: -1 })
-      .limit(5)
+      .limit(5),
+    Game.aggregate([
+      { $match: { status: 'completed', duration: { $gt: 0 } } },
+      { $group: { _id: null, avgDuration: { $avg: '$duration' } } }
+    ])
   ]);
 
   const gameTypeStats = {
@@ -103,21 +224,42 @@ const getGameStats = async () => {
     totalQuestions,
     totalCategories,
     gamesByType: gameTypeStats,
-    recentGames
+    recentGames,
+    avgDuration: avgDuration[0]?.avgDuration || 0
   };
 };
 
 const getGameById = async (gameId) => {
-  return await Game.findById(gameId)
+  return Game.findById(gameId)
     .populate('categories', 'name nameEn icon color')
-    .populate('questionsPlayed');
+    .populate('questionPack', 'name nameEn')
+    .populate({
+      path: 'questionsPlayed.question',
+      select: 'shortId questionType questionContent difficulty'
+    });
+};
+
+const getGameByShortId = async (shortId) => {
+  return Game.findOne({ shortId })
+    .populate('categories', 'name nameEn icon color')
+    .populate('questionPack', 'name nameEn');
+};
+
+const deleteGame = async (gameId) => {
+  return Game.findByIdAndDelete(gameId);
 };
 
 module.exports = {
   createGame,
+  startGame,
   updateGame,
+  addQuestionResult,
+  updateTeamScore,
+  useTeamHelper,
   completeGame,
   getGameHistory,
   getGameStats,
-  getGameById
+  getGameById,
+  getGameByShortId,
+  deleteGame
 };

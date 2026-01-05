@@ -1,4 +1,4 @@
-const { sessionService, questionService } = require('../services');
+const { sessionService, questionService, scoringService, gameService } = require('../services');
 const { BUZZER_ANSWER_TIME, WRONG_ANSWER_PENALTY_RATIO } = require('../utils/constants');
 
 const buzzingEnabled = new Map();
@@ -18,12 +18,26 @@ const setupBuzzerGameHandlers = (io, socket) => {
         return socket.emit('error', { message: 'Only host can start the game' });
       }
 
-      if (session.players.filter(p => p.isActive).length < 1) {
+      const activePlayers = sessionService.getActivePlayers(session);
+      if (activePlayers.length < 1) {
         return socket.emit('error', { message: 'Need at least 1 player to start' });
       }
 
+      // Create game record
+      const game = await gameService.createGame('buzzer', {
+        categories: session.settings.categories.map(c => c._id || c),
+        questionPack: session.questionPack,
+        settings: session.settings
+      });
+
+      session.game = game._id;
+      await session.save();
+
       await sessionService.updateSessionStatus(sessionId, 'playing');
-      io.to(sessionId).emit('game-started', {});
+      io.to(sessionId).emit('game-started', {
+        playerCount: activePlayers.length,
+        questionsCount: session.settings.questionsCount
+      });
 
       await sendBuzzerQuestion(io, sessionId);
     } catch (error) {
@@ -52,17 +66,24 @@ const setupBuzzerGameHandlers = (io, socket) => {
       buzzingEnabled.set(sessionId, false);
       currentBuzzer.set(sessionId, socket.id);
 
-      const { position } = await sessionService.recordBuzz(sessionId, socket.id);
+      const { position, lockedOut } = await sessionService.recordBuzz(sessionId, socket.id);
+
+      if (lockedOut) {
+        buzzingEnabled.set(sessionId, true);
+        return;
+      }
 
       io.to(sessionId).emit('player-buzzed', {
         playerId: socket.id,
         playerName: player.name,
+        playerColor: player.color,
         position
       });
 
+      const answerTime = session.settings.buzzerLockoutTime || 3;
       const timer = setTimeout(async () => {
         await handleBuzzerTimeout(io, sessionId, socket.id);
-      }, BUZZER_ANSWER_TIME);
+      }, answerTime * 1000);
 
       buzzerTimers.set(sessionId, timer);
     } catch (error) {
@@ -128,33 +149,34 @@ const sendBuzzerQuestion = async (io, sessionId) => {
 
     if (!session) return;
 
-    const questionsAsked = session.questionsAsked.map(q => q.toString());
+    const questionsAsked = session.questionsAsked.length;
     const categoryIds = session.settings.categories.map(c => c._id || c);
 
-    if (questionsAsked.length >= session.settings.questionsCount) {
+    if (questionsAsked >= session.settings.questionsCount) {
       return await endBuzzerGame(io, sessionId);
     }
 
-    const question = await questionService.getRandomQuestion(categoryIds, questionsAsked);
+    const excludeIds = session.questionsAsked.map(q => q.questionId?.toString() || q.toString());
+
+    const question = await questionService.getRandomQuestion(categoryIds, {
+      excludeQuestionIds: excludeIds,
+      gameType: 'buzzer'
+    });
 
     if (!question) {
       return await endBuzzerGame(io, sessionId);
     }
 
-    await sessionService.addQuestionToAsked(sessionId, question._id);
-    await sessionService.setCurrentQuestion(sessionId, question._id);
+    await sessionService.setCurrentQuestion(sessionId, question, questionsAsked + 1);
 
-    const preparedQuestion = {
-      id: question._id,
-      type: question.questionType,
-      content: question.questionContent,
-      difficulty: question.difficulty,
-      points: question.points
-    };
+    const preparedQuestion = questionService.prepareQuestionForClient(question, {
+      includeAnswer: false,
+      gameType: 'buzzer'
+    });
 
     io.to(sessionId).emit('new-buzzer-question', {
       question: preparedQuestion,
-      questionNumber: questionsAsked.length + 1,
+      questionNumber: questionsAsked + 1,
       totalQuestions: session.settings.questionsCount
     });
 
@@ -183,24 +205,55 @@ const processJudgeDecision = async (io, sessionId, playerId, correct) => {
     const player = session.players.find(p => p.socketId === playerId);
 
     if (correct) {
-      const pointsAwarded = question.points;
-      await sessionService.updatePlayerScore(sessionId, playerId, pointsAwarded);
-      await questionService.markQuestionPlayed(question._id, true);
+      // Calculate score with speed bonus
+      const buzz = session.currentQuestion.buzzes.find(b => b.socketId === playerId);
+      const responseTime = buzz ? (new Date(buzz.timestamp) - new Date(session.currentQuestion.startedAt)) / 1000 : 0;
+
+      const scoreResult = await scoringService.calculateScore({
+        basePoints: question.points,
+        isCorrect: true,
+        responseTimeSeconds: responseTime,
+        gameType: 'buzzer',
+        difficulty: question.difficulty,
+        buzzerPosition: buzz?.position
+      });
+
+      await sessionService.recordAnswer(sessionId, playerId, {
+        answer: 'buzzer_correct',
+        correct: true,
+        responseTime,
+        pointsAwarded: scoreResult.totalPoints
+      });
+
+      await questionService.markQuestionPlayed(question._id, { correct: true });
 
       const leaderboard = await sessionService.getLeaderboard(sessionId);
 
-      const preparedAnswer = questionService.prepareQuestionForClient(question, true);
+      const preparedAnswer = questionService.prepareQuestionForClient(question, {
+        includeAnswer: true,
+        gameType: 'buzzer'
+      });
 
       io.to(sessionId).emit('buzzer-correct', {
         playerId,
         playerName: player?.name,
-        pointsAwarded,
+        playerColor: player?.color,
+        pointsAwarded: scoreResult.totalPoints,
+        speedBonus: scoreResult.speedBonus,
         correctAnswer: preparedAnswer.answer,
         answerType: preparedAnswer.answerType,
         leaderboard
       });
 
       currentBuzzer.delete(sessionId);
+
+      // Store results
+      await sessionService.addQuestionToAsked(sessionId, question._id, [{
+        playerId,
+        playerName: player?.name,
+        correct: true,
+        pointsAwarded: scoreResult.totalPoints
+      }]);
 
       const updatedSession = await sessionService.getSession(sessionId);
       const questionsAsked = updatedSession.questionsAsked.length;
@@ -216,12 +269,19 @@ const processJudgeDecision = async (io, sessionId, playerId, correct) => {
       }
     } else {
       const pointsLost = Math.round(question.points * WRONG_ANSWER_PENALTY_RATIO);
-      await sessionService.updatePlayerScore(sessionId, playerId, -pointsLost);
+
+      await sessionService.recordAnswer(sessionId, playerId, {
+        answer: 'buzzer_wrong',
+        correct: false,
+        pointsAwarded: -pointsLost
+      });
+
       await sessionService.lockOutPlayer(sessionId, playerId);
 
       io.to(sessionId).emit('buzzer-wrong', {
         playerId,
         playerName: player?.name,
+        playerColor: player?.color,
         pointsLost
       });
 
@@ -248,16 +308,22 @@ const showAnswerAndNext = async (io, sessionId) => {
     if (!session) return;
 
     const question = session.currentQuestion.questionId;
-    await questionService.markQuestionPlayed(question._id, false);
+    await questionService.markQuestionPlayed(question._id, { correct: false });
 
-    const preparedAnswer = questionService.prepareQuestionForClient(question, true);
+    const preparedAnswer = questionService.prepareQuestionForClient(question, {
+      includeAnswer: true,
+      gameType: 'buzzer'
+    });
+
+    // Store results
+    await sessionService.addQuestionToAsked(sessionId, question._id, []);
 
     io.to(sessionId).emit('all-locked-out', {
       correctAnswer: preparedAnswer.answer,
       answerType: preparedAnswer.answerType
     });
 
-    const questionsAsked = session.questionsAsked.length;
+    const questionsAsked = session.questionsAsked.length + 1;
 
     if (questionsAsked >= session.settings.questionsCount) {
       setTimeout(async () => {
@@ -279,15 +345,28 @@ const endBuzzerGame = async (io, sessionId) => {
     currentBuzzer.delete(sessionId);
     clearBuzzerTimer(sessionId);
 
-    await sessionService.updateSessionStatus(sessionId, 'ended');
+    const { session, rankings } = await sessionService.endSession(sessionId);
 
-    const leaderboard = await sessionService.getLeaderboard(sessionId);
-    const session = await sessionService.getSession(sessionId);
+    // Complete game record
+    if (session.game) {
+      await gameService.completeGame(session.game, {
+        players: session.players.filter(p => p.isActive).map(p => ({
+          name: p.name,
+          score: p.score,
+          correctAnswers: p.correctAnswers,
+          wrongAnswers: p.wrongAnswers,
+          totalAnswerTime: p.totalAnswerTime
+        }))
+      });
+    }
+
+    const stats = await sessionService.getSessionStats(sessionId);
 
     io.to(sessionId).emit('game-ended', {
-      finalLeaderboard: leaderboard,
-      winner: leaderboard[0] || null,
+      finalLeaderboard: rankings,
+      winner: rankings[0] || null,
       stats: {
+        ...stats,
         totalQuestions: session.questionsAsked.length,
         totalPlayers: session.players.filter(p => p.isActive).length
       }

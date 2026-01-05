@@ -7,6 +7,7 @@ module.exports = {
   errorMiddleware,
   notFoundMiddleware,
   upload,
+  uploadMiddleware: upload,
   uploadImage,
   uploadAudio,
   uploadVideo

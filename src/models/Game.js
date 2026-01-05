@@ -1,45 +1,146 @@
 const mongoose = require('mongoose');
+const { customAlphabet } = require('nanoid');
+
+const nanoid = customAlphabet('abcdefghijklmnopqrstuvwxyz0123456789', 10);
 
 const gameSchema = new mongoose.Schema({
+  shortId: {
+    type: String,
+    unique: true,
+    default: () => nanoid()
+  },
   gameType: {
     type: String,
     enum: ['main', 'everyone', 'buzzer'],
-    required: [true, 'Game type is required']
+    required: true,
+    index: true
   },
   teams: [{
-    name: String,
+    name: { type: String, required: true },
     icon: String,
     color: String,
-    finalScore: Number
+    scores: [{
+      questionId: { type: mongoose.Schema.Types.ObjectId, ref: 'Question' },
+      points: Number,
+      correct: Boolean,
+      timestamp: Date
+    }],
+    finalScore: { type: Number, default: 0 },
+    helpersUsed: {
+      callFriend: [{
+        questionId: { type: mongoose.Schema.Types.ObjectId, ref: 'Question' },
+        usedAt: Date
+      }],
+      thePit: [{
+        questionId: { type: mongoose.Schema.Types.ObjectId, ref: 'Question' },
+        pointsDeducted: Number,
+        usedAt: Date
+      }],
+      doubleAnswer: [{
+        questionId: { type: mongoose.Schema.Types.ObjectId, ref: 'Question' },
+        usedAt: Date
+      }],
+      takeRest: [{
+        questionId: { type: mongoose.Schema.Types.ObjectId, ref: 'Question' },
+        targetPlayer: String,
+        usedAt: Date
+      }]
+    }
   }],
   winner: {
-    type: Number,
-    default: null
+    teamIndex: Number,
+    teamName: String,
+    finalScore: Number
   },
   players: [{
+    socketId: String,
     name: String,
-    finalScore: Number,
-    rank: Number
+    avatar: String,
+    answers: [{
+      questionId: { type: mongoose.Schema.Types.ObjectId, ref: 'Question' },
+      answer: String,
+      correct: Boolean,
+      points: Number,
+      timeToAnswer: Number,
+      timestamp: Date
+    }],
+    buzzes: [{
+      questionId: { type: mongoose.Schema.Types.ObjectId, ref: 'Question' },
+      position: Number,
+      timestamp: Date,
+      answeredCorrectly: Boolean
+    }],
+    finalScore: { type: Number, default: 0 },
+    rank: Number,
+    correctCount: { type: Number, default: 0 },
+    wrongCount: { type: Number, default: 0 },
+    averageTime: Number
   }],
   categories: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Category'
   }],
   questionsPlayed: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Question'
+    question: { type: mongoose.Schema.Types.ObjectId, ref: 'Question' },
+    order: Number,
+    answeredCorrectly: Boolean,
+    answeredBy: String,
+    timeToAnswer: Number,
+    pointsAwarded: Number,
+    helperUsed: String,
+    bothTeamsWrong: Boolean,
+    playerResults: [{
+      playerId: String,
+      answer: String,
+      correct: Boolean,
+      points: Number,
+      timeToAnswer: Number
+    }],
+    playedAt: Date
   }],
-  duration: {
-    type: Number
+  questionPack: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'QuestionPack'
   },
-  completedAt: {
-    type: Date
-  }
+  settings: {
+    timePerQuestion: Number,
+    questionsCount: Number,
+    pointsEasy: Number,
+    pointsMedium: Number,
+    pointsHard: Number
+  },
+  startedAt: Date,
+  endedAt: Date,
+  duration: Number,
+  status: {
+    type: String,
+    enum: ['in_progress', 'completed', 'abandoned'],
+    default: 'in_progress'
+  },
+  createdBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Admin'
+  },
+  // Backward compatibility
+  completedAt: Date
 }, {
   timestamps: true
 });
 
-gameSchema.index({ gameType: 1 });
-gameSchema.index({ createdAt: -1 });
+gameSchema.index({ gameType: 1, createdAt: -1 });
+gameSchema.index({ status: 1 });
+gameSchema.index({ 'teams.name': 1 });
+gameSchema.index({ categories: 1 });
+// shortId index already created via unique: true
+
+gameSchema.methods.complete = async function() {
+  this.status = 'completed';
+  this.endedAt = new Date();
+  this.completedAt = this.endedAt;
+  if (this.startedAt) {
+    this.duration = Math.round((this.endedAt - this.startedAt) / 1000);
+  }
+  await this.save();
+};
 
 module.exports = mongoose.model('Game', gameSchema);

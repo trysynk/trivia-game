@@ -8,16 +8,21 @@ const setupSocketHandlers = (io) => {
   io.on('connection', (socket) => {
     console.log(`Client connected: ${socket.id}`);
 
-    socket.on('create-session', async ({ gameType, settings }) => {
+    socket.on('create-session', async ({ gameType, settings, questionPack }) => {
       try {
-        const session = await sessionService.createSession(gameType, settings, socket.id);
+        const session = await sessionService.createSession(gameType, {
+          settings,
+          hostSocketId: socket.id,
+          questionPack
+        });
 
         socket.join(session.sessionId);
         socketToSession.set(socket.id, session.sessionId);
 
         socket.emit('session-created', {
           sessionId: session.sessionId,
-          qrUrl: `/qr-game/${gameType}/controller?session=${session.sessionId}`
+          qrUrl: `/qr-game/${gameType}/controller?session=${session.sessionId}`,
+          settings: session.settings
         });
 
         console.log(`Session created: ${session.sessionId} by ${socket.id}`);
@@ -35,20 +40,21 @@ const setupSocketHandlers = (io) => {
           return socket.emit('error', { message: 'Session not found' });
         }
 
-        if (session.status !== 'waiting') {
+        if (session.status !== 'waiting' && !session.settings.allowLateJoin) {
           return socket.emit('error', { message: 'Game already started' });
         }
 
-        await sessionService.addPlayer(sessionId, socket.id, playerName, avatar);
+        await sessionService.addPlayer(sessionId, socket.id, { name: playerName, avatar });
 
         socket.join(sessionId);
         socketToSession.set(socket.id, sessionId);
 
         const updatedSession = await sessionService.getSession(sessionId);
-        const players = updatedSession.players.filter(p => p.isActive).map(p => ({
+        const players = sessionService.getActivePlayers(updatedSession).map(p => ({
           socketId: p.socketId,
           name: p.name,
           avatar: p.avatar,
+          color: p.color,
           score: p.score
         }));
 
@@ -57,7 +63,9 @@ const setupSocketHandlers = (io) => {
         socket.emit('joined-session', {
           sessionId,
           gameType: session.gameType,
-          settings: session.settings
+          settings: session.settings,
+          status: session.status,
+          myColor: players.find(p => p.socketId === socket.id)?.color
         });
 
         console.log(`Player ${playerName} joined session ${sessionId}`);
@@ -81,10 +89,11 @@ const setupSocketHandlers = (io) => {
         socket.join(sessionId);
         socketToSession.set(socket.id, sessionId);
 
-        const players = session.players.filter(p => p.isActive).map(p => ({
+        const players = sessionService.getActivePlayers(session).map(p => ({
           socketId: p.socketId,
           name: p.name,
           avatar: p.avatar,
+          color: p.color,
           score: p.score
         }));
 
@@ -95,13 +104,47 @@ const setupSocketHandlers = (io) => {
             status: session.status,
             players,
             settings: session.settings,
-            questionsAsked: session.questionsAsked.length
+            questionsAsked: session.questionsAsked.length,
+            currentQuestion: session.currentQuestion
           }
         });
 
         console.log(`Host rejoined session ${sessionId}`);
       } catch (error) {
         console.error('Error host rejoin:', error);
+        socket.emit('error', { message: 'Failed to rejoin session' });
+      }
+    });
+
+    socket.on('player-rejoin', async ({ sessionId, previousSocketId }) => {
+      try {
+        const session = await sessionService.getSession(sessionId);
+
+        if (!session) {
+          return socket.emit('error', { message: 'Session not found' });
+        }
+
+        await sessionService.reconnectPlayer(sessionId, previousSocketId, socket.id);
+
+        socket.join(sessionId);
+        socketToSession.set(socket.id, sessionId);
+
+        const updatedSession = await sessionService.getSession(sessionId);
+        const player = updatedSession.players.find(p => p.socketId === socket.id);
+
+        socket.emit('player-rejoined', {
+          sessionId,
+          gameType: session.gameType,
+          status: session.status,
+          settings: session.settings,
+          myScore: player?.score || 0,
+          myColor: player?.color,
+          currentQuestion: session.status === 'question_active' ? session.currentQuestion : null
+        });
+
+        console.log(`Player rejoined session ${sessionId}`);
+      } catch (error) {
+        console.error('Error player rejoin:', error);
         socket.emit('error', { message: 'Failed to rejoin session' });
       }
     });
@@ -115,10 +158,11 @@ const setupSocketHandlers = (io) => {
 
         const session = await sessionService.getSession(sessionId);
         if (session) {
-          const players = session.players.filter(p => p.isActive).map(p => ({
+          const players = sessionService.getActivePlayers(session).map(p => ({
             socketId: p.socketId,
             name: p.name,
             avatar: p.avatar,
+            color: p.color,
             score: p.score
           }));
 
@@ -148,10 +192,11 @@ const setupSocketHandlers = (io) => {
         }
 
         const updatedSession = await sessionService.getSession(sessionId);
-        const players = updatedSession.players.filter(p => p.isActive).map(p => ({
+        const players = sessionService.getActivePlayers(updatedSession).map(p => ({
           socketId: p.socketId,
           name: p.name,
           avatar: p.avatar,
+          color: p.color,
           score: p.score
         }));
 
@@ -191,6 +236,21 @@ const setupSocketHandlers = (io) => {
       }
     });
 
+    socket.on('get-session-status', async ({ sessionId }) => {
+      try {
+        const session = await sessionService.getSession(sessionId);
+        if (session) {
+          socket.emit('session-status', {
+            status: session.status,
+            playerCount: sessionService.getActivePlayers(session).length,
+            questionsAsked: session.questionsAsked.length
+          });
+        }
+      } catch (error) {
+        console.error('Error getting session status:', error);
+      }
+    });
+
     setupEveryoneGameHandlers(io, socket);
     setupBuzzerGameHandlers(io, socket);
 
@@ -203,16 +263,18 @@ const setupSocketHandlers = (io) => {
 
           if (session) {
             if (session.hostSocketId === socket.id) {
+              io.to(sessionId).emit('host-disconnected');
               console.log(`Host disconnected from session ${sessionId}`);
             } else {
               await sessionService.removePlayer(sessionId, socket.id);
 
               const updatedSession = await sessionService.getSession(sessionId);
               if (updatedSession) {
-                const players = updatedSession.players.filter(p => p.isActive).map(p => ({
+                const players = sessionService.getActivePlayers(updatedSession).map(p => ({
                   socketId: p.socketId,
                   name: p.name,
                   avatar: p.avatar,
+                  color: p.color,
                   score: p.score
                 }));
 
