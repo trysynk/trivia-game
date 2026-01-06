@@ -31,12 +31,14 @@ const createCategory = asyncHandler(async (req, res) => {
     throw createError(validation.errors.join(', '), 400);
   }
 
-  const { name, nameEn, icon, color, order } = req.body;
+  const { name, nameEn, icon, iconType, coverImage, color, order } = req.body;
 
   const category = await Category.create({
     name,
     nameEn,
     icon,
+    iconType,
+    coverImage,
     color,
     order
   });
@@ -45,7 +47,7 @@ const createCategory = asyncHandler(async (req, res) => {
 });
 
 const updateCategory = asyncHandler(async (req, res) => {
-  const { name, nameEn, icon, color, order, isActive } = req.body;
+  const { name, nameEn, icon, iconType, coverImage, color, order, isActive } = req.body;
 
   if (name !== undefined) {
     const validation = validateCategory({ name });
@@ -56,7 +58,7 @@ const updateCategory = asyncHandler(async (req, res) => {
 
   const category = await Category.findByIdAndUpdate(
     req.params.id,
-    { name, nameEn, icon, color, order, isActive },
+    { name, nameEn, icon, iconType, coverImage, color, order, isActive },
     { new: true, runValidators: true }
   );
 
