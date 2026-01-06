@@ -4,7 +4,7 @@ const { asyncHandler, createError } = require('../utils/helpers');
 const config = require('../config/env');
 
 // PayPal SDK setup
-const { Client, Environment, LogLevel } = require('@paypal/paypal-server-sdk');
+const { Client, Environment, LogLevel, OrdersController } = require('@paypal/paypal-server-sdk');
 
 // Initialize PayPal client
 const getPayPalClient = () => {
@@ -23,6 +23,12 @@ const getPayPalClient = () => {
       logResponse: { logHeaders: true }
     }
   });
+};
+
+// Get OrdersController instance
+const getOrdersController = () => {
+  const client = getPayPalClient();
+  return new OrdersController(client);
 };
 
 const getPackages = asyncHandler(async (req, res) => {
@@ -48,8 +54,7 @@ const createOrder = asyncHandler(async (req, res) => {
     throw createError('باقة غير صالحة', 400);
   }
 
-  const client = getPayPalClient();
-  const ordersController = client.ordersController;
+  const ordersController = getOrdersController();
 
   const orderRequest = {
     body: {
@@ -122,8 +127,7 @@ const captureOrder = asyncHandler(async (req, res) => {
     throw createError('طلب دفع غير موجود', 404);
   }
 
-  const client = getPayPalClient();
-  const ordersController = client.ordersController;
+  const ordersController = getOrdersController();
 
   // Capture the payment with PayPal
   const captureRequest = {
