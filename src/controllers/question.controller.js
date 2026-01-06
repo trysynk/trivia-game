@@ -90,6 +90,16 @@ const createQuestion = asyncHandler(async (req, res) => {
     status
   } = req.body;
 
+  // Default gamesAvailable if not provided
+  const defaultGamesAvailable = {
+    mainGame: {
+      enabled: true,
+      helpers: { callFriend: true, thePit: true, doubleAnswer: true, takeRest: true }
+    },
+    everyoneAnswers: { enabled: true, pointsMultiplier: 1 },
+    buzzerMode: { enabled: true, timeToAnswer: 10, wrongAnswerPenalty: 50, useMultipleChoice: false }
+  };
+
   const question = await Question.create({
     category,
     difficulty,
@@ -98,7 +108,7 @@ const createQuestion = asyncHandler(async (req, res) => {
     answerType,
     answerContent,
     answerDisplaySettings,
-    gamesAvailable,
+    gamesAvailable: gamesAvailable || defaultGamesAvailable,
     multipleChoice,
     tags,
     points,
