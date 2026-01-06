@@ -33,7 +33,15 @@ const getPackages = asyncHandler(async (req, res) => {
 });
 
 const createOrder = asyncHandler(async (req, res) => {
+  if (!req.body) {
+    throw createError('Request body is missing', 400);
+  }
+
   const { packageId } = req.body;
+
+  if (!packageId) {
+    throw createError('Package ID is required', 400);
+  }
 
   const selectedPackage = GAME_PACKAGES.find(p => p.id === packageId);
   if (!selectedPackage) {
@@ -93,7 +101,15 @@ const createOrder = asyncHandler(async (req, res) => {
 });
 
 const captureOrder = asyncHandler(async (req, res) => {
+  if (!req.body) {
+    throw createError('Request body is missing', 400);
+  }
+
   const { orderId } = req.body;
+
+  if (!orderId) {
+    throw createError('Order ID is required', 400);
+  }
 
   // Find the payment record
   const payment = await Payment.findOne({
