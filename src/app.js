@@ -64,7 +64,9 @@ app.get('/', (req, res) => {
       stats: '/api/stats',
       media: '/api/media',
       questionPacks: '/api/question-packs',
-      activity: '/api/activity'
+      activity: '/api/activity',
+      users: '/api/users',
+      payments: '/api/payments'
     }
   });
 });

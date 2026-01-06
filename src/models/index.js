@@ -8,6 +8,8 @@ const Media = require('./Media');
 const QuestionPack = require('./QuestionPack');
 const Settings = require('./Settings');
 const ActivityLog = require('./ActivityLog');
+const User = require('./User');
+const Payment = require('./Payment');
 
 module.exports = {
   Admin,
@@ -19,5 +21,7 @@ module.exports = {
   Media,
   QuestionPack,
   Settings,
-  ActivityLog
+  ActivityLog,
+  User,
+  Payment
 };

@@ -13,6 +13,8 @@ const statsRoutes = require('./stats.routes');
 const mediaRoutes = require('./media.routes');
 const questionPackRoutes = require('./questionPack.routes');
 const activityRoutes = require('./activity.routes');
+const userRoutes = require('./user.routes');
+const paymentRoutes = require('./payment.routes');
 
 router.use('/auth', authRoutes);
 router.use('/categories', categoryRoutes);
@@ -26,6 +28,8 @@ router.use('/stats', statsRoutes);
 router.use('/media', mediaRoutes);
 router.use('/question-packs', questionPackRoutes);
 router.use('/activity', activityRoutes);
+router.use('/users', userRoutes);
+router.use('/payments', paymentRoutes);
 
 router.get('/health', (req, res) => {
   res.json({

@@ -11,6 +11,11 @@ module.exports = {
     apiKey: process.env.CLOUDINARY_API_KEY,
     apiSecret: process.env.CLOUDINARY_API_SECRET
   },
+  paypal: {
+    clientId: process.env.PAYPAL_CLIENT_ID,
+    clientSecret: process.env.PAYPAL_CLIENT_SECRET
+  },
+  frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3000',
   corsOrigin: process.env.CORS_ORIGIN || 'http://localhost:3000',
   sessionExpiryHours: parseInt(process.env.SESSION_EXPIRY_HOURS) || 4,
   maxFileSize: parseInt(process.env.MAX_FILE_SIZE) || 50000000
