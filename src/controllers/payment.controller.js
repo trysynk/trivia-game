@@ -77,7 +77,7 @@ const createOrder = asyncHandler(async (req, res) => {
     prefer: 'return=representation'
   };
 
-  const { result } = await ordersController.ordersCreate(orderRequest);
+  const { result } = await ordersController.createOrder(orderRequest);
 
   // Create pending payment record
   await Payment.create({
@@ -135,7 +135,7 @@ const captureOrder = asyncHandler(async (req, res) => {
     prefer: 'return=representation'
   };
 
-  const { result } = await ordersController.ordersCapture(captureRequest);
+  const { result } = await ordersController.captureOrder(captureRequest);
 
   if (result.status === 'COMPLETED') {
     // Update payment status
