@@ -1,0 +1,5 @@
+category,difficulty,questionText,mediaUrl,blurLevel,revealMode,revealDuration,answerText,alternativeAnswers,explanation,tags,mainGame,buzzerMode,timeLimit
+الرياضة,easy,ما هو هذا الملعب الشهير؟,https://example.com/stadium.jpg,7,gradual,3,ملعب الملك فهد الدولي,ملعب الملك فهد,من أكبر الملاعب في السعودية,سعودي|شائع,TRUE,TRUE,30
+المشاهير,medium,من هذا الشخص المشهور؟,https://example.com/celebrity.jpg,5,instant,0,محمد صلاح,,لاعب كرة قدم مصري يلعب لليفربول,عربي|شائع,TRUE,TRUE,30
+الجغرافيا,easy,ما هو هذا المعلم الشهير؟,https://example.com/landmark.jpg,6,gradual,5,برج إيفل,برج ايفل|Eiffel Tower,بُني عام 1889 في باريس,عالمي,TRUE,TRUE,30
+طعام وشراب,easy,ما هذا الطبق؟,https://example.com/food.jpg,4,instant,0,كبسة,الكبسة,طبق سعودي تقليدي شهير,سعودي,TRUE,FALSE,20

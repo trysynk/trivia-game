@@ -1,0 +1,6 @@
+category,difficulty,emojis,emojiHint,answerText,alternativeAnswers,explanation,tags,mainGame,everyoneAnswers,buzzerMode,timeLimit
+الفن والثقافة,easy,🎤👩‍🦱🌙,مغنية عربية,فيروز,Fairuz,فيروز جارة القمر,عربي|شائع,TRUE,FALSE,TRUE,30
+الرياضة,easy,⚽🏆🇸🇦,حدث رياضي سعودي,كأس الملك,كاس الملك,أقدم بطولة كرة قدم في السعودية,سعودي,TRUE,FALSE,TRUE,30
+الجغرافيا,medium,🏔️🗻❄️🇳🇵,أعلى قمة,إيفرست,ايفرست|Everest,أعلى قمة جبل في العالم بارتفاع 8849 متر,عالمي,TRUE,FALSE,TRUE,30
+العلوم,hard,⚛️💥🍄,حدث علمي,القنبلة الذرية,القنبله الذريه,أول تجربة نووية كانت عام 1945,عالمي,TRUE,FALSE,FALSE,30
+الفن والثقافة,medium,📖✍️🇪🇬,أديب مصري,نجيب محفوظ,,أول عربي يحصل على جائزة نوبل في الأدب,عربي|شائع,TRUE,FALSE,TRUE,30

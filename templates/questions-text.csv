@@ -1,0 +1,9 @@
+questionType,category,difficulty,questionText,answerText,alternativeAnswers,explanation,funFact,mediaUrl,mediaType,tags,mainGame,everyoneAnswers,buzzerMode,timeLimit
+text,الرياضة,easy,ما هو أكثر نادٍ فوزاً بدوري أبطال أوروبا؟,ريال مدريد,رييال مدريد|Real Madrid,فاز ريال مدريد بـ 15 لقباً في دوري أبطال أوروبا,أول بطولة كانت عام 1956,,,شائع|عالمي,TRUE,FALSE,TRUE,30
+text,التاريخ,medium,في أي عام فُتحت مكة المكرمة؟,630 م,630|8 هـ,فتح مكة كان في العام الثامن للهجرة,,,,عربي,TRUE,FALSE,FALSE,30
+text,الجغرافيا,easy,ما هي عاصمة اليابان؟,طوكيو,توكيو|Tokyo,طوكيو هي أكبر منطقة حضرية في العالم,يبلغ عدد سكانها أكثر من 37 مليون نسمة,,,عالمي,TRUE,FALSE,TRUE,20
+image,العلوم,medium,ما اسم هذا العنصر الكيميائي؟,الذهب,Au|Gold,الذهب عنصر كيميائي رمزه Au وعدده الذري 79,,https://example.com/gold.jpg,image,,TRUE,FALSE,FALSE,30
+audio,الفن والثقافة,hard,من هو صاحب هذا الصوت؟,أم كلثوم,ام كلثوم,كوكب الشرق أم كلثوم,,https://example.com/audio.mp3,audio,,TRUE,FALSE,TRUE,30
+video,الرياضة,medium,من سجل هذا الهدف؟,ماجد عبدالله,,هدف تاريخي في كأس العالم,,https://example.com/video.mp4,video,سعودي,TRUE,FALSE,FALSE,30
+text,التاريخ,hard,من هو مؤسس الدولة الأموية؟,معاوية بن أبي سفيان,معاوية,أسس الدولة الأموية عام 661م وجعل دمشق عاصمة لها,,,,عربي,TRUE,FALSE,FALSE,45
+before_after,التاريخ,medium,ماذا حدث قبل: معركة اليرموك أم فتح مكة؟,فتح مكة,,فتح مكة كان عام 630م واليرموك عام 636م,,,,عربي,TRUE,FALSE,FALSE,30

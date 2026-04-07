@@ -1,0 +1,5 @@
+category,difficulty,questionText,mediaUrl1,mediaUrl2,image1Label,image2Label,displayMode,answerText,alternativeAnswers,explanation,tags,mainGame,buzzerMode,timeLimit
+الرياضة,medium,أي ملعب أكبر سعة؟,https://example.com/stadium1.jpg,https://example.com/stadium2.jpg,ملعب الملك فهد,ملعب الجوهرة,side_by_side,ملعب الملك فهد,,سعة ملعب الملك فهد 68 ألف متفرج,سعودي,TRUE,TRUE,30
+الجغرافيا,easy,أي مدينة هذه وأي مدينة تلك؟,https://example.com/city1.jpg,https://example.com/city2.jpg,المدينة الأولى,المدينة الثانية,side_by_side,دبي والرياض,دبي و الرياض,,عربي,TRUE,FALSE,30
+الفن والثقافة,hard,أي لوحة رُسمت أولاً؟,https://example.com/painting1.jpg,https://example.com/painting2.jpg,اللوحة الأولى,اللوحة الثانية,overlay_toggle,اللوحة الأولى,,رُسمت عام 1503,عالمي,TRUE,FALSE,45
+طعام وشراب,easy,ما الفرق بين هذين الطبقين؟,https://example.com/dish1.jpg,https://example.com/dish2.jpg,الطبق الأول,الطبق الثاني,side_by_side,مندي وكبسة,,المندي يُطبخ في التنور والكبسة على النار,سعودي,TRUE,FALSE,20

@@ -1,0 +1,6 @@
+category,difficulty,questionText,answerNumber,unit,unitPlural,minValue,maxValue,percentageRange,absoluteRange,closestWins,showSlider,explanation,tags,mainGame,timeLimit
+الجغرافيا,medium,كم يبلغ عدد سكان السعودية بالمليون؟,36,مليون,مليون,10,100,10,,TRUE,TRUE,عدد سكان السعودية حوالي 36 مليون نسمة,سعودي,TRUE,30
+العلوم,hard,كم تبلغ درجة حرارة سطح الشمس بالدرجة المئوية؟,5500,درجة,درجة,1000,10000,15,,TRUE,TRUE,درجة حرارة سطح الشمس حوالي 5500 درجة مئوية,عالمي,TRUE,45
+التاريخ,easy,في أي سنة ميلادية وُلد النبي محمد ﷺ؟,570,م,م,400,700,,20,FALSE,FALSE,ولد النبي محمد ﷺ في عام الفيل,عربي,TRUE,30
+الجغرافيا,medium,كم يبلغ ارتفاع برج خليفة بالمتر؟,828,متر,متر,500,1200,5,,TRUE,TRUE,برج خليفة أطول مبنى في العالم,عالمي|شائع,TRUE,30
+الرياضة,easy,كم عدد لاعبي فريق كرة القدم في الملعب؟,11,لاعب,لاعبين,5,20,,0,FALSE,FALSE,,شائع,TRUE,20

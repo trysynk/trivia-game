@@ -1,0 +1,5 @@
+category,difficulty,questionText,centerLat,centerLng,zoom,markerLat,markerLng,hideLabels,answerText,answerLat,answerLng,acceptableRadius,alternativeAnswers,explanation,tags,mainGame,timeLimit
+الجغرافيا,medium,أين تقع مكة المكرمة؟,23.0,43.0,5,,,TRUE,مكة المكرمة,21.4225,39.8262,50,مكة|مكه,أقدس مدينة في الإسلام,عربي|سعودي,TRUE,30
+الجغرافيا,easy,أين يقع برج خليفة؟,25.0,55.0,6,,,TRUE,دبي,25.1972,55.2744,30,Dubai,أطول مبنى في العالم في دبي,عالمي,TRUE,30
+الجغرافيا,hard,أين تقع مدينة البتراء؟,31.0,36.0,6,,,TRUE,الأردن,30.3285,35.4444,40,البترا|Petra,مدينة أثرية في جنوب الأردن,عربي|عالمي,TRUE,45
+الجغرافيا,medium,أين تقع الأهرامات؟,28.0,32.0,5,,,TRUE,الجيزة - مصر,29.9792,31.1342,30,الجيزة|مصر|Giza,أهرامات الجيزة من عجائب الدنيا السبع,عالمي,TRUE,30

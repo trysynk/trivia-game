@@ -86,8 +86,9 @@ const createQuestion = asyncHandler(async (req, res) => {
     multipleChoice,
     tags,
     points,
-    timeLimit,
-    status
+    timing,
+    status,
+    reviewNotes
   } = req.body;
 
   // Default gamesAvailable if not provided
@@ -112,8 +113,9 @@ const createQuestion = asyncHandler(async (req, res) => {
     multipleChoice,
     tags,
     points,
-    timeLimit,
+    timing,
     status: status || 'draft',
+    reviewNotes,
     createdBy: req.admin._id
   });
 
@@ -142,7 +144,7 @@ const updateQuestion = asyncHandler(async (req, res) => {
   const allowedUpdates = [
     'category', 'difficulty', 'questionType', 'questionContent',
     'answerType', 'answerContent', 'answerDisplaySettings',
-    'gamesAvailable', 'multipleChoice', 'tags', 'points', 'timeLimit', 'status'
+    'gamesAvailable', 'multipleChoice', 'tags', 'points', 'timing', 'status', 'reviewNotes'
   ];
 
   allowedUpdates.forEach(field => {

@@ -1,0 +1,6 @@
+name,nameEn,description,color,icon,shuffleQuestions,mainGame,everyoneAnswers,buzzerMode,isPublic,isSmartPack,filterCategories,filterDifficulties,filterTags,minQuestions,maxQuestions
+تحدي الرياضة,Sports Challenge,باقة أسئلة رياضية متنوعة للمحترفين,#EF4444,sports_soccer,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,الرياضة,easy|medium|hard,,10,20
+ثقافة عامة سهلة,Easy General Knowledge,أسئلة سهلة للمبتدئين من مختلف التصنيفات,#3B82F6,school,TRUE,TRUE,TRUE,FALSE,TRUE,TRUE,,easy,للمبتدئين,10,15
+تحدي التاريخ الصعب,Hard History Challenge,أسئلة تاريخية صعبة للخبراء,#F59E0B,history_edu,TRUE,TRUE,FALSE,FALSE,TRUE,TRUE,التاريخ,hard,,5,10
+باقة الإيموجي,Emoji Pack,خمن الإجابة من الإيموجي,#EC4899,emoji_emotions,TRUE,TRUE,FALSE,TRUE,TRUE,TRUE,,easy|medium,,10,20
+المزيج السعودي,Saudi Mix,أسئلة متنوعة عن السعودية,#059669,flag,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,,,سعودي,10,20

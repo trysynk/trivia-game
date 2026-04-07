@@ -1,0 +1,11 @@
+name,nameEn,description,descriptionEn,icon,color,order,mainGame,everyoneAnswers,buzzerMode,defaultTimeLimit
+الرياضة,Sports,أسئلة عن كرة القدم وألعاب القوى والرياضات المختلفة,Questions about football and various sports,sports_soccer,#EF4444,1,TRUE,TRUE,TRUE,30
+التاريخ,History,أسئلة عن التاريخ العربي والإسلامي والعالمي,Questions about Arab and world history,history_edu,#F59E0B,2,TRUE,TRUE,FALSE,30
+الجغرافيا,Geography,أسئلة عن الدول والعواصم والمعالم الجغرافية,Questions about countries and landmarks,public,#10B981,3,TRUE,TRUE,TRUE,20
+العلوم,Science,أسئلة علمية في الفيزياء والكيمياء والأحياء,Science questions,science,#3B82F6,4,TRUE,TRUE,TRUE,30
+الفن والثقافة,Art & Culture,أسئلة عن الفنون والآداب والثقافة,Art and culture questions,palette,#8B5CF6,5,TRUE,TRUE,FALSE,30
+الدين,Religion,أسئلة دينية إسلامية,Islamic religious questions,menu_book,#059669,6,TRUE,FALSE,FALSE,45
+التكنولوجيا,Technology,أسئلة عن التقنية والإنترنت,Technology questions,devices,#6366F1,7,TRUE,TRUE,TRUE,20
+اللغة العربية,Arabic Language,أسئلة عن اللغة العربية والنحو والبلاغة,Arabic language questions,translate,#EC4899,8,TRUE,FALSE,FALSE,30
+المشاهير,Celebrities,أسئلة عن المشاهير والشخصيات المعروفة,Celebrity questions,stars,#F97316,9,TRUE,TRUE,TRUE,20
+طعام وشراب,Food & Drink,أسئلة عن الأطعمة والمشروبات,Food and drink questions,restaurant,#14B8A6,10,TRUE,TRUE,TRUE,20
