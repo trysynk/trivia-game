@@ -1,4 +1,4 @@
-const { User } = require('../models');
+const { User, Game } = require('../models');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const config = require('../config/env');
@@ -120,6 +120,57 @@ const useGame = asyncHandler(async (req, res) => {
   });
 });
 
+const getMyGames = asyncHandler(async (req, res) => {
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 20;
+  const skip = (page - 1) * limit;
+
+  const filter = { owner: req.user._id, status: 'completed' };
+
+  const [games, total] = await Promise.all([
+    Game.find(filter)
+      .sort({ endedAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .populate('categories', 'name nameEn color icon')
+      .select('shortId gameType teams players winner categories startedAt endedAt duration status'),
+    Game.countDocuments(filter)
+  ]);
+
+  res.json({
+    success: true,
+    games: games.map(g => ({
+      id: g._id,
+      shortId: g.shortId,
+      gameType: g.gameType,
+      playedAt: g.endedAt || g.startedAt,
+      duration: g.duration,
+      teams: g.teams.map(t => ({
+        name: t.name,
+        icon: t.icon,
+        color: t.color,
+        score: t.finalScore
+      })),
+      players: g.players.map(p => ({
+        name: p.name,
+        avatar: p.avatar,
+        score: p.finalScore,
+        rank: p.rank
+      })),
+      winner: g.winner,
+      categories: g.categories.map(c => ({
+        name: c.name,
+        nameEn: c.nameEn,
+        color: c.color,
+        icon: c.icon
+      }))
+    })),
+    total,
+    page,
+    pages: Math.ceil(total / limit)
+  });
+});
+
 const forgotPassword = asyncHandler(async (req, res) => {
   const user = await User.findOne({ email: req.body.email });
 
@@ -175,6 +226,7 @@ module.exports = {
   updateMe,
   logout,
   useGame,
+  getMyGames,
   forgotPassword,
   resetPassword
 };

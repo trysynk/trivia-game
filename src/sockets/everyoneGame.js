@@ -25,7 +25,8 @@ const setupEveryoneGameHandlers = (io, socket) => {
       const game = await gameService.createGame('everyone', {
         categories: session.settings.categories.map(c => c._id || c),
         questionPack: session.questionPack,
-        settings: session.settings
+        settings: session.settings,
+        owner: session.hostUser
       });
 
       session.game = game._id;

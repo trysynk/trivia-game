@@ -22,6 +22,10 @@ const sessionSchema = new mongoose.Schema({
     ref: 'Game'
   },
   hostSocketId: String,
+  hostUser: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
   players: [{
     socketId: { type: String, required: true },
     name: { type: String, required: true, trim: true },

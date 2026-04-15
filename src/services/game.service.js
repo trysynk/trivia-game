@@ -5,7 +5,7 @@ const scoringService = require('./scoring.service');
 const nanoid = customAlphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', 8);
 
 const createGame = async (gameType, options = {}) => {
-  const { categories, teams = [], questionPack, settings = {} } = options;
+  const { categories, teams = [], questionPack, settings = {}, owner } = options;
 
   const game = await Game.create({
     shortId: nanoid(),
@@ -26,7 +26,8 @@ const createGame = async (gameType, options = {}) => {
       finalScore: 0
     })),
     questionsPlayed: [],
-    status: 'waiting'
+    status: 'waiting',
+    owner: owner || undefined
   });
 
   return game;

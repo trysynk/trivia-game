@@ -4,7 +4,7 @@ const { generateSessionId, formatLeaderboard, generatePlayerColor } = require('.
 const scoringService = require('./scoring.service');
 
 const createSession = async (gameType, options = {}) => {
-  const { settings = {}, hostSocketId, questionPack } = options;
+  const { settings = {}, hostSocketId, hostUser, questionPack } = options;
 
   const sessionId = generateSessionId();
 
@@ -20,6 +20,7 @@ const createSession = async (gameType, options = {}) => {
     sessionId,
     gameType,
     hostSocketId,
+    hostUser,
     questionPack,
     settings: {
       questionTime: settings.questionTime || defaults.questionTime || 30,

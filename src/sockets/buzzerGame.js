@@ -27,7 +27,8 @@ const setupBuzzerGameHandlers = (io, socket) => {
       const game = await gameService.createGame('buzzer', {
         categories: session.settings.categories.map(c => c._id || c),
         questionPack: session.questionPack,
-        settings: session.settings
+        settings: session.settings,
+        owner: session.hostUser
       });
 
       session.game = game._id;

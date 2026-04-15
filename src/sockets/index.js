@@ -8,11 +8,12 @@ const setupSocketHandlers = (io) => {
   io.on('connection', (socket) => {
     console.log(`Client connected: ${socket.id}`);
 
-    socket.on('create-session', async ({ gameType, settings, questionPack }) => {
+    socket.on('create-session', async ({ gameType, settings, questionPack, userId }) => {
       try {
         const session = await sessionService.createSession(gameType, {
           settings,
           hostSocketId: socket.id,
+          hostUser: userId || null,
           questionPack
         });
 

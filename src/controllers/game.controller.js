@@ -3,7 +3,7 @@ const { asyncHandler, createError } = require('../utils/helpers');
 const { validateGameType } = require('../utils/validators');
 
 const createGame = asyncHandler(async (req, res) => {
-  const { gameType, categories, teams } = req.body;
+  const { gameType, categories, teams, userId } = req.body;
 
   if (!validateGameType(gameType)) {
     throw createError('Invalid game type', 400);
@@ -13,7 +13,8 @@ const createGame = asyncHandler(async (req, res) => {
     throw createError('At least one category is required', 400);
   }
 
-  const game = await gameService.createGame(gameType, categories, teams);
+  const owner = req.user?._id || userId || undefined;
+  const game = await gameService.createGame(gameType, { categories, teams, owner });
 
   res.status(201).json({ game });
 });

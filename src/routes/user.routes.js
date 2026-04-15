@@ -15,5 +15,6 @@ router.get('/me', userController.getMe);
 router.put('/me', userController.updateMe);
 router.post('/logout', userController.logout);
 router.post('/use-game', userController.useGame);
+router.get('/me/games', userController.getMyGames);
 
 module.exports = router;
