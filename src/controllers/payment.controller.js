@@ -1,4 +1,4 @@
-const { Payment } = require('../models');
+const { Payment, PromoCode } = require('../models');
 const { GAME_PACKAGES } = require('../config/gamePackages');
 const { asyncHandler, createError } = require('../utils/helpers');
 const config = require('../config/env');
@@ -38,12 +38,46 @@ const getPackages = asyncHandler(async (req, res) => {
   });
 });
 
+const validatePromoCode = asyncHandler(async (req, res) => {
+  const { code, packageId } = req.body;
+
+  if (!code) throw createError('كود الخصم مطلوب', 400);
+  if (!packageId) throw createError('يجب اختيار باقة', 400);
+
+  const selectedPackage = GAME_PACKAGES.find(p => p.id === packageId);
+  if (!selectedPackage) throw createError('باقة غير صالحة', 400);
+
+  const promo = await PromoCode.findOne({ code: code.toUpperCase() });
+  if (!promo) throw createError('كود الخصم غير صحيح', 404);
+
+  const validation = promo.isValid(req.user._id, packageId, selectedPackage.priceKWD);
+  if (!validation.valid) throw createError(validation.message, 400);
+
+  const discountKWD = promo.calculateDiscount(selectedPackage.priceKWD);
+  const finalPriceKWD = selectedPackage.priceKWD - discountKWD;
+  const kwdToUsdRate = selectedPackage.priceUSD / selectedPackage.priceKWD;
+  const finalPriceUSD = Math.round(finalPriceKWD * kwdToUsdRate * 100) / 100;
+
+  res.json({
+    success: true,
+    promo: {
+      code: promo.code,
+      description: promo.description,
+      discountType: promo.discountType,
+      discountValue: promo.discountValue,
+      discountKWD,
+      finalPriceKWD,
+      finalPriceUSD
+    }
+  });
+});
+
 const createOrder = asyncHandler(async (req, res) => {
   if (!req.body) {
     throw createError('Request body is missing', 400);
   }
 
-  const { packageId } = req.body;
+  const { packageId, promoCode } = req.body;
 
   if (!packageId) {
     throw createError('Package ID is required', 400);
@@ -54,6 +88,24 @@ const createOrder = asyncHandler(async (req, res) => {
     throw createError('باقة غير صالحة', 400);
   }
 
+  let finalPriceKWD = selectedPackage.priceKWD;
+  let finalPriceUSD = selectedPackage.priceUSD;
+  let appliedPromo = null;
+
+  if (promoCode) {
+    const promo = await PromoCode.findOne({ code: promoCode.toUpperCase() });
+    if (promo) {
+      const validation = promo.isValid(req.user._id, packageId, selectedPackage.priceKWD);
+      if (validation.valid) {
+        const discountKWD = promo.calculateDiscount(selectedPackage.priceKWD);
+        finalPriceKWD = selectedPackage.priceKWD - discountKWD;
+        const kwdToUsdRate = selectedPackage.priceUSD / selectedPackage.priceKWD;
+        finalPriceUSD = Math.round(finalPriceKWD * kwdToUsdRate * 100) / 100;
+        appliedPromo = promo;
+      }
+    }
+  }
+
   const ordersController = getOrdersController();
 
   const orderRequest = {
@@ -62,7 +114,7 @@ const createOrder = asyncHandler(async (req, res) => {
       purchaseUnits: [{
         amount: {
           currencyCode: 'USD',
-          value: selectedPackage.priceUSD.toFixed(2)
+          value: finalPriceUSD.toFixed(2)
         },
         description: `${selectedPackage.label} - لعبة التحدي`
       }],
@@ -79,8 +131,7 @@ const createOrder = asyncHandler(async (req, res) => {
 
   const { result } = await ordersController.createOrder(orderRequest);
 
-  // Create pending payment record
-  await Payment.create({
+  const paymentData = {
     user: req.user._id,
     paypalOrderId: result.id,
     package: {
@@ -88,14 +139,24 @@ const createOrder = asyncHandler(async (req, res) => {
       label: selectedPackage.label,
       priceKWD: selectedPackage.priceKWD
     },
-    amount: selectedPackage.priceKWD,
+    amount: finalPriceKWD,
     currency: 'KWD',
     status: 'pending',
     ipAddress: req.ip,
     userAgent: req.get('User-Agent')
-  });
+  };
 
-  // Find approval URL
+  if (appliedPromo) {
+    paymentData.promoCode = {
+      code: appliedPromo.code,
+      discountType: appliedPromo.discountType,
+      discountValue: appliedPromo.discountValue,
+      discountAmount: selectedPackage.priceKWD - finalPriceKWD
+    };
+  }
+
+  await Payment.create(paymentData);
+
   const approvalUrl = result.links?.find(link => link.rel === 'approve')?.href;
 
   res.json({
@@ -145,6 +206,17 @@ const captureOrder = asyncHandler(async (req, res) => {
     payment.completedAt = new Date();
     await payment.save();
 
+    // Record promo code usage
+    if (payment.promoCode && payment.promoCode.code) {
+      await PromoCode.findOneAndUpdate(
+        { code: payment.promoCode.code },
+        {
+          $inc: { usedCount: 1 },
+          $push: { usedBy: { user: req.user._id } }
+        }
+      );
+    }
+
     // Add games to user
     await req.user.addGames(payment.package.games);
 
@@ -191,6 +263,7 @@ const getHistory = asyncHandler(async (req, res) => {
 
 module.exports = {
   getPackages,
+  validatePromoCode,
   createOrder,
   captureOrder,
   getHistory

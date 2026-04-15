@@ -24,6 +24,14 @@ const paymentSchema = new mongoose.Schema({
     priceKWD: { type: Number, required: true }
   },
 
+  // Promo Code
+  promoCode: {
+    code: String,
+    discountType: String,
+    discountValue: Number,
+    discountAmount: Number
+  },
+
   // Payment Details
   amount: {
     type: Number,

@@ -8,6 +8,7 @@ router.get('/packages', paymentController.getPackages);
 
 // Protected routes
 router.use(protectUser);
+router.post('/validate-promo', paymentController.validatePromoCode);
 router.post('/create-order', paymentController.createOrder);
 router.post('/capture-order', paymentController.captureOrder);
 router.get('/history', paymentController.getHistory);

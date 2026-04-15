@@ -15,6 +15,7 @@ const questionPackRoutes = require('./questionPack.routes');
 const activityRoutes = require('./activity.routes');
 const userRoutes = require('./user.routes');
 const paymentRoutes = require('./payment.routes');
+const promoCodeRoutes = require('./promoCode.routes');
 
 router.use('/auth', authRoutes);
 router.use('/categories', categoryRoutes);
@@ -30,6 +31,7 @@ router.use('/question-packs', questionPackRoutes);
 router.use('/activity', activityRoutes);
 router.use('/users', userRoutes);
 router.use('/payments', paymentRoutes);
+router.use('/promo-codes', promoCodeRoutes);
 
 router.get('/health', (req, res) => {
   res.json({

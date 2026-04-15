@@ -10,6 +10,7 @@ const Settings = require('./Settings');
 const ActivityLog = require('./ActivityLog');
 const User = require('./User');
 const Payment = require('./Payment');
+const PromoCode = require('./PromoCode');
 
 module.exports = {
   Admin,
@@ -23,5 +24,6 @@ module.exports = {
   Settings,
   ActivityLog,
   User,
-  Payment
+  Payment,
+  PromoCode
 };
