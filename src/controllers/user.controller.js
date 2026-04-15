@@ -140,6 +140,51 @@ const useGame = asyncHandler(async (req, res) => {
   });
 });
 
+const getCurrentGame = asyncHandler(async (req, res) => {
+  const game = await Game.findOne({
+    owner: req.user._id,
+    status: 'in_progress'
+  })
+    .populate('categories', 'name nameEn color icon')
+    .populate('currentQuestion.questionId');
+
+  if (!game) {
+    return res.status(204).send();
+  }
+
+  res.json({ success: true, game });
+});
+
+const syncGame = asyncHandler(async (req, res) => {
+  const { gameId } = req.params;
+  const { teams, currentTeam, gamePhase, currentQuestion,
+    doubleAnswerActive, activeHelper, questionsPlayed } = req.body;
+
+  const game = await Game.findOne({ _id: gameId, owner: req.user._id, status: 'in_progress' });
+  if (!game) throw createError('اللعبة غير موجودة', 404);
+
+  if (teams) {
+    teams.forEach((t, i) => {
+      if (game.teams[i]) {
+        if (t.score !== undefined) game.teams[i].finalScore = t.score;
+        if (t.helpersUsed) game.teams[i].helpersUsed = t.helpersUsed;
+      }
+    });
+  }
+
+  if (currentTeam !== undefined) game.currentTeam = currentTeam;
+  if (gamePhase) game.gamePhase = gamePhase;
+  if (currentQuestion !== undefined) game.currentQuestion = currentQuestion;
+  if (doubleAnswerActive !== undefined) game.doubleAnswerActive = doubleAnswerActive;
+  if (activeHelper !== undefined) game.activeHelper = activeHelper;
+  if (questionsPlayed) game.questionsPlayed = questionsPlayed;
+
+  game.lastActivityAt = new Date();
+  await game.save();
+
+  res.json({ success: true });
+});
+
 const completeMyGame = asyncHandler(async (req, res) => {
   const { gameId } = req.params;
   const { teams, questionsPlayed, winner, duration } = req.body;
@@ -170,6 +215,10 @@ const completeMyGame = asyncHandler(async (req, res) => {
   game.endedAt = new Date();
   game.completedAt = game.endedAt;
   game.duration = duration || Math.round((game.endedAt - game.startedAt) / 1000);
+  game.gamePhase = 'winner';
+  game.currentQuestion = undefined;
+  game.doubleAnswerActive = false;
+  game.activeHelper = undefined;
 
   await game.save();
 
@@ -290,6 +339,8 @@ module.exports = {
   updateMe,
   logout,
   useGame,
+  getCurrentGame,
+  syncGame,
   completeMyGame,
   getMyGames,
   forgotPassword,

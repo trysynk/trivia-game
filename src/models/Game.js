@@ -121,6 +121,33 @@ const gameSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Admin'
   },
+  // Live game state (for main game persistence)
+  currentTeam: {
+    type: Number,
+    default: 0
+  },
+  gamePhase: {
+    type: String,
+    enum: ['board', 'question', 'answer', 'winner'],
+    default: 'board'
+  },
+  currentQuestion: {
+    questionId: { type: mongoose.Schema.Types.ObjectId, ref: 'Question' },
+    points: Number
+  },
+  doubleAnswerActive: {
+    type: Boolean,
+    default: false
+  },
+  activeHelper: {
+    team: Number,
+    helper: String
+  },
+  lastActivityAt: {
+    type: Date,
+    default: Date.now
+  },
+
   // User owner (for paid games)
   owner: {
     type: mongoose.Schema.Types.ObjectId,
@@ -137,6 +164,8 @@ gameSchema.index({ gameType: 1, createdAt: -1 });
 gameSchema.index({ status: 1 });
 gameSchema.index({ 'teams.name': 1 });
 gameSchema.index({ categories: 1 });
+gameSchema.index({ owner: 1, status: 1 });
+gameSchema.index({ lastActivityAt: 1, status: 1 });
 // shortId index already created via unique: true
 
 gameSchema.methods.complete = async function() {
