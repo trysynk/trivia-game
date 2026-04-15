@@ -185,6 +185,25 @@ const syncGame = asyncHandler(async (req, res) => {
   res.json({ success: true });
 });
 
+const abandonMyGame = asyncHandler(async (req, res) => {
+  const { gameId } = req.params;
+
+  const game = await Game.findOne({ _id: gameId, owner: req.user._id, status: 'in_progress' });
+  if (!game) throw createError('اللعبة غير موجودة', 404);
+
+  game.status = 'abandoned';
+  game.endedAt = new Date();
+  game.lastActivityAt = new Date();
+  game.currentQuestion = undefined;
+  game.activeHelper = undefined;
+  game.doubleAnswerActive = false;
+  game.gamePhase = undefined;
+
+  await game.save();
+
+  res.json({ success: true });
+});
+
 const completeMyGame = asyncHandler(async (req, res) => {
   const { gameId } = req.params;
   const { teams, questionsPlayed, winner, duration } = req.body;
@@ -341,6 +360,7 @@ module.exports = {
   useGame,
   getCurrentGame,
   syncGame,
+  abandonMyGame,
   completeMyGame,
   getMyGames,
   forgotPassword,
