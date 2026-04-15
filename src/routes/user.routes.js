@@ -15,6 +15,7 @@ router.get('/me', userController.getMe);
 router.put('/me', userController.updateMe);
 router.post('/logout', userController.logout);
 router.post('/use-game', userController.useGame);
+router.patch('/me/games/:gameId/complete', userController.completeMyGame);
 router.get('/me/games', userController.getMyGames);
 
 module.exports = router;

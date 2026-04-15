@@ -1,4 +1,4 @@
-const { User, Game } = require('../models');
+const { User, Game, Category } = require('../models');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const config = require('../config/env');
@@ -108,14 +108,78 @@ const logout = asyncHandler(async (req, res) => {
 });
 
 const useGame = asyncHandler(async (req, res) => {
+  const { categories, teams } = req.body;
+
   const user = await req.user.useGame();
+
+  const game = await Game.create({
+    gameType: 'main',
+    categories: categories || [],
+    teams: (teams || []).map(t => ({
+      name: t.name,
+      icon: t.icon,
+      color: t.color,
+      finalScore: 0
+    })),
+    status: 'in_progress',
+    startedAt: new Date(),
+    owner: user._id
+  });
+
+  user.gamesHistory.push({ game: game._id });
+  await user.save({ validateBeforeSave: false });
 
   res.json({
     success: true,
+    gameId: game._id,
     user: {
       id: user._id,
       gamesRemaining: user.gamesRemaining,
       totalGamesPlayed: user.totalGamesPlayed
+    }
+  });
+});
+
+const completeMyGame = asyncHandler(async (req, res) => {
+  const { gameId } = req.params;
+  const { teams, questionsPlayed, winner, duration } = req.body;
+
+  const game = await Game.findOne({ _id: gameId, owner: req.user._id });
+  if (!game) throw createError('اللعبة غير موجودة', 404);
+  if (game.status === 'completed') throw createError('اللعبة منتهية بالفعل', 400);
+
+  if (teams) {
+    game.teams = teams.map(t => ({
+      name: t.name,
+      icon: t.icon,
+      color: t.color,
+      finalScore: t.score || t.finalScore || 0,
+      helpersUsed: t.helpersUsed || {}
+    }));
+  }
+
+  if (questionsPlayed) {
+    game.questionsPlayed = questionsPlayed;
+  }
+
+  if (winner) {
+    game.winner = winner;
+  }
+
+  game.status = 'completed';
+  game.endedAt = new Date();
+  game.completedAt = game.endedAt;
+  game.duration = duration || Math.round((game.endedAt - game.startedAt) / 1000);
+
+  await game.save();
+
+  res.json({
+    success: true,
+    game: {
+      id: game._id,
+      status: game.status,
+      duration: game.duration,
+      winner: game.winner
     }
   });
 });
@@ -226,6 +290,7 @@ module.exports = {
   updateMe,
   logout,
   useGame,
+  completeMyGame,
   getMyGames,
   forgotPassword,
   resetPassword
