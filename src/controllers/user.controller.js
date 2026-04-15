@@ -167,17 +167,40 @@ const syncGame = asyncHandler(async (req, res) => {
     teams.forEach((t, i) => {
       if (game.teams[i]) {
         if (t.score !== undefined) game.teams[i].finalScore = t.score;
-        if (t.helpersUsed) game.teams[i].helpersUsed = t.helpersUsed;
+        if (t.helpersUsed) {
+          // Frontend sends booleans, schema expects arrays — convert
+          const hu = t.helpersUsed;
+          for (const key of ['callFriend', 'doubleAnswer', 'takeRest', 'thePit']) {
+            if (hu[key] === true && (!game.teams[i].helpersUsed[key] || game.teams[i].helpersUsed[key].length === 0)) {
+              game.teams[i].helpersUsed[key] = [{ usedAt: new Date() }];
+            } else if (hu[key] === false) {
+              game.teams[i].helpersUsed[key] = [];
+            } else if (Array.isArray(hu[key])) {
+              game.teams[i].helpersUsed[key] = hu[key];
+            }
+          }
+        }
       }
     });
   }
 
   if (currentTeam !== undefined) game.currentTeam = currentTeam;
   if (gamePhase) game.gamePhase = gamePhase;
-  if (currentQuestion !== undefined) game.currentQuestion = currentQuestion;
+  if (currentQuestion !== undefined) game.currentQuestion = currentQuestion || undefined;
   if (doubleAnswerActive !== undefined) game.doubleAnswerActive = doubleAnswerActive;
-  if (activeHelper !== undefined) game.activeHelper = activeHelper;
-  if (questionsPlayed) game.questionsPlayed = questionsPlayed;
+  if (activeHelper !== undefined) game.activeHelper = activeHelper || undefined;
+  if (questionsPlayed) {
+    game.questionsPlayed = questionsPlayed.map(qp => ({
+      question: qp.question || qp.questionId,
+      order: qp.order || qp.slot,
+      answeredCorrectly: qp.answeredCorrectly,
+      answeredBy: qp.answeredBy,
+      timeToAnswer: qp.timeToAnswer,
+      pointsAwarded: qp.pointsAwarded,
+      helperUsed: qp.helperUsed,
+      playedAt: qp.playedAt
+    }));
+  }
 
   game.lastActivityAt = new Date();
   await game.save();

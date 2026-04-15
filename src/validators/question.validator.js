@@ -67,13 +67,23 @@ const questionsQueryValidator = [
 ];
 
 const forGameValidator = [
-  body('categories')
+  body('categories').optional()
     .isArray({ min: 1 }).withMessage('At least one category is required'),
-  body('categories.*')
+  body('categories.*').optional()
+    .isMongoId().withMessage('Invalid category ID'),
+  body('categoryIds').optional()
+    .isArray({ min: 1 }).withMessage('At least one category is required'),
+  body('categoryIds.*').optional()
     .isMongoId().withMessage('Invalid category ID'),
   body('gameType')
     .optional()
     .isIn(['main', 'everyone', 'buzzer']).withMessage('Invalid game type'),
+  body('difficulty')
+    .optional()
+    .isIn(['easy', 'medium', 'hard']).withMessage('Invalid difficulty'),
+  body('limit')
+    .optional()
+    .isInt({ min: 1, max: 50 }).toInt().withMessage('Limit must be 1-50'),
   body('questionsPerDifficulty')
     .optional()
     .isObject().withMessage('questionsPerDifficulty must be an object'),

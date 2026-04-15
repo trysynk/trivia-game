@@ -57,14 +57,38 @@ const getQuestionByShortId = asyncHandler(async (req, res) => {
 });
 
 const getQuestionsForGame = asyncHandler(async (req, res) => {
-  const { categories, gameType = 'everyone', questionsPerDifficulty } = req.body;
-  const { excludeQuestionIds = [] } = req.body;
+  const { categories, categoryIds, gameType = 'main', questionsPerDifficulty,
+    difficulty, limit, excludeQuestionIds = [] } = req.body;
 
-  if (!categories || !categories.length) {
+  const cats = categories || categoryIds;
+  if (!cats || !cats.length) {
     throw createError('At least one category is required', 400);
   }
 
-  const questions = await questionService.getQuestionsForGame(categories, {
+  // If difficulty + limit provided, fetch flat list for a single difficulty
+  if (difficulty && limit) {
+    const gameField = gameType === 'everyone' ? 'gamesAvailable.everyoneAnswers.enabled' :
+                      gameType === 'buzzer' ? 'gamesAvailable.buzzerMode.enabled' :
+                      'gamesAvailable.mainGame.enabled';
+
+    const query = {
+      category: { $in: cats },
+      difficulty,
+      status: 'active',
+      _id: { $nin: excludeQuestionIds }
+    };
+    query[gameField] = true;
+
+    const questions = await Question.find(query)
+      .sort({ 'stats.timesPlayed': 1 })
+      .limit(limit)
+      .populate('category', 'name nameEn icon color');
+
+    return res.json({ questions });
+  }
+
+  // Otherwise use grouped-by-difficulty format
+  const questions = await questionService.getQuestionsForGame(cats, {
     excludeQuestionIds,
     gameType,
     questionsPerDifficulty
