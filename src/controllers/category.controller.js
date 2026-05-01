@@ -10,6 +10,16 @@ const getCategories = asyncHandler(async (req, res) => {
     query.isActive = true;
   }
 
+  // Restriction filter: show category if no restriction OR current user is whitelisted
+  if (req.user) {
+    query.$or = [
+      { restrictedToUsers: { $size: 0 } },
+      { restrictedToUsers: req.user._id }
+    ];
+  } else {
+    query.restrictedToUsers = { $size: 0 };
+  }
+
   const categories = await Category.find(query).sort({ order: 1, createdAt: 1 });
 
   res.json({ categories });
@@ -20,6 +30,13 @@ const getCategory = asyncHandler(async (req, res) => {
 
   if (!category) {
     throw createError('Category not found', 404);
+  }
+
+  // Restriction check
+  if (category.restrictedToUsers?.length > 0) {
+    const userId = req.user?._id?.toString();
+    const allowed = category.restrictedToUsers.some(id => id.toString() === userId);
+    if (!allowed) throw createError('Category not found', 404);
   }
 
   res.json({ category });

@@ -86,5 +86,25 @@ const protectUser = async (req, res, next) => {
   }
 };
 
+// Optional user auth: sets req.user if a valid user token is present, otherwise continues silently
+const optionalUser = async (req, res, next) => {
+  try {
+    const token = req.headers.authorization?.startsWith('Bearer')
+      ? req.headers.authorization.split(' ')[1]
+      : null;
+    if (!token) return next();
+
+    const decoded = jwt.verify(token, config.jwtSecret);
+    if (decoded.type === 'user') {
+      const user = await User.findById(decoded.id);
+      if (user && user.isActive) req.user = user;
+    }
+  } catch (e) {
+    // ignore — endpoint stays public
+  }
+  next();
+};
+
 module.exports = authMiddleware;
 module.exports.protectUser = protectUser;
+module.exports.optionalUser = optionalUser;

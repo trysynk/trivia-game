@@ -65,6 +65,10 @@ const categorySchema = new mongoose.Schema({
     type: Boolean,
     default: true
   },
+  restrictedToUsers: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }],
   stats: {
     totalQuestions: { type: Number, default: 0 },
     questionsEasy: { type: Number, default: 0 },
