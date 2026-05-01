@@ -11,13 +11,20 @@ const getCategories = asyncHandler(async (req, res) => {
   }
 
   // Restriction filter: show category if no restriction OR current user is whitelisted
+  // Handle both missing field and empty array
+  const noRestriction = {
+    $or: [
+      { restrictedToUsers: { $exists: false } },
+      { restrictedToUsers: { $size: 0 } }
+    ]
+  };
   if (req.user) {
     query.$or = [
-      { restrictedToUsers: { $size: 0 } },
+      ...noRestriction.$or,
       { restrictedToUsers: req.user._id }
     ];
   } else {
-    query.restrictedToUsers = { $size: 0 };
+    Object.assign(query, noRestriction);
   }
 
   const categories = await Category.find(query).sort({ order: 1, createdAt: 1 });
